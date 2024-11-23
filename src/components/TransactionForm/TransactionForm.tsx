@@ -6,7 +6,8 @@ import {getCategories, isClosedExpenseModal, openExpenseModal} from "../../store
 import * as React from "react";
 import {useAppDispatch, useAppSelector} from "../../app/hooks.ts";
 import {fetchCategory} from "../../store/thunks/categoryThunks.ts";
-import {createTransaction} from "../../store/thunks/transactionThunks.ts";
+import {createTransaction, fetchTransactions} from "../../store/thunks/transactionThunks.ts";
+import {isCreateLoading} from "../../store/slices/transactionSlice.ts";
 
 const initialState = {
     name: '',
@@ -20,11 +21,14 @@ const TransactionForm = () => {
     const dispatch = useAppDispatch();
     const categories = useAppSelector(getCategories);
     const isOpenModal = useAppSelector(openExpenseModal);
+    const isCreate = useAppSelector(isCreateLoading);
 
 
     useEffect(() => {
-        dispatch(fetchCategory());
-    }, [dispatch]);
+        if (isOpenModal) {
+            dispatch(fetchCategory());
+        }
+    }, [isOpenModal,dispatch]);
 
     const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const {name, value} = e.target;
@@ -36,20 +40,25 @@ const TransactionForm = () => {
 
     const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        const selectedCategory = categories.find((category) => category.type === form.type);
+        const selectedCategory = categories.find((category) => category.name === form.name && category.type === form.type);
 
         if (!selectedCategory) {
             return;
         }
 
-        const newTransaction = {
-            category: selectedCategory.id,
-            amount: form.amount,
-            created: new Date().toISOString(),
-        };
+        if (form.type.trim().length !== 0 && form.name.trim().length !== 0) {
+            const newTransaction = {
+                category: selectedCategory.id,
+                amount: Number(form.amount),
+                created: new Date().toISOString(),
+                id: selectedCategory.id,
+            };
 
-        await dispatch(createTransaction(newTransaction));
-        dispatch(isClosedExpenseModal());
+            await dispatch(createTransaction(newTransaction));
+            dispatch(isClosedExpenseModal());
+            await dispatch(fetchTransactions());
+        }
+
         setForm(initialState);
 
     };
@@ -143,7 +152,7 @@ const TransactionForm = () => {
                             </TextField>
                         </Grid>
                         <Grid size={8}>
-                            <Button type='submit' variant="contained" sx={{width: "100%"}}>
+                            <Button type='submit' variant="contained" sx={{width: "100%"}} disabled={isCreate}>
                                 Create
                             </Button>
                         </Grid>

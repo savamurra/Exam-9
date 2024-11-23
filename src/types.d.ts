@@ -3,7 +3,6 @@ export interface ICategoryForm {
     type: string,
 }
 
-
 export interface ICategory {
     name: string,
     type: string,
@@ -24,15 +23,9 @@ export interface ITransactionForm {
     amount: number,
 }
 
-export interface ITransaction {
-    transaction: ICategory,
-    amount: number,
-    id: string,
-}
-
-
 export interface TransactionType {
     category: string,
     amount: number,
     created: string,
+    id: string,
 }

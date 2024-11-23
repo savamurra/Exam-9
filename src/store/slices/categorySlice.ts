@@ -26,7 +26,7 @@ const initialState: CategoryState = {
 };
 
 export const openModals = (state: RootState) => state.category.isOpenCategoryModal;
-export const openExpenseModal = (state: RootState) => state.category.isOpenExpenseModal
+export const openExpenseModal = (state: RootState) => state.category.isOpenExpenseModal;
 export const createLoading = (state: RootState) => state.category.isCreatedLoading;
 export const getCategories = (state: RootState)=> state.category.categories;
 export const selectedData = (state: RootState) => state.category.selectedCategory;
