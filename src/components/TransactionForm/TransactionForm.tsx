@@ -1,41 +1,30 @@
+import { useEffect, useState} from "react";
+import {ITransactionForm} from "../../types";
 import {Button, MenuItem, TextField, Typography} from "@mui/material";
 import Grid from "@mui/material/Grid2";
-import {useCallback, useEffect, useState} from "react";
-import {ICategoryForm} from "../../types";
+import {getCategories, isClosedExpenseModal, openExpenseModal} from "../../store/slices/categorySlice.ts";
 import * as React from "react";
-import {createCategory, editCategory, fetchCategory} from "../../store/thunks/categoryThunks.ts";
 import {useAppDispatch, useAppSelector} from "../../app/hooks.ts";
-import {
-    createLoading,
-    isCloseModal, isEdit,
-    openModals, selectedData,
-} from "../../store/slices/categorySlice.ts";
+import {fetchCategory} from "../../store/thunks/categoryThunks.ts";
+import {createTransaction} from "../../store/thunks/transactionThunks.ts";
 
 const initialState = {
     name: '',
     type: '',
+    amount: 0,
+    created: '',
 };
 
-const CategoryForm = () => {
-    const [form, setForm] = useState<ICategoryForm>(initialState);
+const TransactionForm = () => {
+    const [form, setForm] = useState<ITransactionForm>(initialState);
     const dispatch = useAppDispatch();
-    const isOpenModal = useAppSelector(openModals);
-    const loading = useAppSelector(createLoading);
-    const editLoading = useAppSelector(isEdit);
-    const selected = useAppSelector(selectedData);
+    const categories = useAppSelector(getCategories);
+    const isOpenModal = useAppSelector(openExpenseModal);
 
-    const types = [
-        {type: 'Income'},
-        {type: 'Expense'},
-    ];
 
     useEffect(() => {
-        if (selected) {
-            setForm(selected);
-        } else {
-            setForm(initialState);
-        }
-    }, [dispatch, selected]);
+        dispatch(fetchCategory());
+    }, [dispatch]);
 
     const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const {name, value} = e.target;
@@ -45,26 +34,24 @@ const CategoryForm = () => {
         });
     };
 
-    const createCategories = useCallback(async (category: ICategoryForm) => {
-        dispatch(createCategory(category));
-    }, [dispatch]);
-
     const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        if (selected) {
-            await dispatch(editCategory({...selected, ...form}));
-            dispatch(isCloseModal());
-            await dispatch(fetchCategory());
-        } else {
-            if (form.type.trim().length !== 0 && form.name.trim().length !== 0) {
-                await createCategories(form);
-                dispatch(isCloseModal());
-                await dispatch(fetchCategory());
-            } else {
-                alert('Заполните поля');
-            }
+        const selectedCategory = categories.find((category) => category.type === form.type);
+
+        if (!selectedCategory) {
+            return;
         }
+
+        const newTransaction = {
+            category: selectedCategory.id,
+            amount: form.amount,
+            created: new Date().toISOString(),
+        };
+
+        await dispatch(createTransaction(newTransaction));
+        dispatch(isClosedExpenseModal());
         setForm(initialState);
+
     };
 
     if (!isOpenModal) return null;
@@ -95,7 +82,7 @@ const CategoryForm = () => {
 
                 <div>
                     <Typography variant="h4" sx={{flexGrow: 1, textAlign: "center"}}>
-                        {selected ? 'Edit Category' : 'Create Category'}
+                        Create
                     </Typography>
                     <Grid
                         container
@@ -112,9 +99,27 @@ const CategoryForm = () => {
                                 value={form.type}
                                 onChange={onChange}
                             >
-                                {types.map((option) => (
-                                    <MenuItem key={option.type} value={option.type}>
-                                        {option.type}
+                                {[...new Set(categories.map((option) => option.type))].map((type) => (
+                                    <MenuItem key={type} value={type}>
+                                        {type}
+                                    </MenuItem>
+                                ))}
+
+                            </TextField>
+                        </Grid>
+                        <Grid size={8}>
+                            <TextField
+                                sx={{width: "100%"}}
+                                id="outlined-select-currency"
+                                name="name"
+                                select
+                                label="Name"
+                                value={form.name}
+                                onChange={onChange}
+                            >
+                                {categories.filter(option => option.type === form.type).map((option) => (
+                                    <MenuItem key={option.name} value={option.name}>
+                                        {option.name}
                                     </MenuItem>
                                 ))}
                             </TextField>
@@ -123,21 +128,28 @@ const CategoryForm = () => {
                             <TextField
                                 sx={{width: "100%"}}
                                 id="outlined-basic"
-                                name="name"
-                                label="Name"
+                                name="amount"
+                                label="Amount"
                                 variant='outlined'
-                                value={form.name}
+                                type='number'
+                                value={form.amount}
                                 onChange={onChange}
+                                InputProps={{
+                                    inputProps: {
+                                        min: 0
+                                    }
+                                }}
                             >
                             </TextField>
                         </Grid>
                         <Grid size={8}>
-                            <Button type='submit' variant="contained" sx={{width: "100%"}} disabled={loading || editLoading}>
-                                {selected ? 'Edit' : 'Create'}
+                            <Button type='submit' variant="contained" sx={{width: "100%"}}>
+                                Create
                             </Button>
                         </Grid>
                         <Grid size={8}>
-                            <Button variant="contained" sx={{width: "100%"}} onClick={() => dispatch(isCloseModal())}>
+                            <Button variant="contained" sx={{width: "100%"}}
+                                    onClick={() => dispatch(isClosedExpenseModal())}>
                                 Close
                             </Button>
                         </Grid>
@@ -148,4 +160,4 @@ const CategoryForm = () => {
     );
 };
 
-export default CategoryForm;
+export default TransactionForm;

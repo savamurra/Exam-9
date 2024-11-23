@@ -8,6 +8,7 @@ interface CategoryState {
     selectedCategory: ICategory | null;
     isCreatedLoading: boolean;
     isOpenCategoryModal: boolean;
+    isOpenExpenseModal: boolean;
     isFetchingLoading: boolean;
     isEditLoading: boolean;
     isDeleteLoading: boolean;
@@ -18,12 +19,14 @@ const initialState: CategoryState = {
     selectedCategory: null,
     isCreatedLoading: false,
     isOpenCategoryModal: false,
+    isOpenExpenseModal: false,
     isFetchingLoading: false,
     isEditLoading: false,
     isDeleteLoading: false,
 };
 
 export const openModals = (state: RootState) => state.category.isOpenCategoryModal;
+export const openExpenseModal = (state: RootState) => state.category.isOpenExpenseModal
 export const createLoading = (state: RootState) => state.category.isCreatedLoading;
 export const getCategories = (state: RootState)=> state.category.categories;
 export const selectedData = (state: RootState) => state.category.selectedCategory;
@@ -44,6 +47,12 @@ export const categorySlice = createSlice({
         getSelectedData: (state, action: PayloadAction<ICategory>) => {
             state.selectedCategory = action.payload;
         },
+        isOpenedExpenseModal: (state) => {
+            state.isOpenExpenseModal = true;
+        },
+        isClosedExpenseModal: (state) => {
+            state.isOpenExpenseModal = false;
+        }
     },
     extraReducers: (builder) => {
         builder
@@ -87,4 +96,4 @@ export const categorySlice = createSlice({
     }
 });
 
-export const {isOpenModal,isCloseModal, getSelectedData} = categorySlice.actions;
+export const {isOpenModal,isCloseModal, getSelectedData, isOpenedExpenseModal, isClosedExpenseModal} = categorySlice.actions;
