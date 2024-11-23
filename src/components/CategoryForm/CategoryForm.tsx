@@ -1,10 +1,15 @@
 import {Button, MenuItem, TextField, Typography} from "@mui/material";
 import Grid from "@mui/material/Grid2";
-import {useCallback, useState} from "react";
+import {useCallback, useEffect, useState} from "react";
 import {ICategoryForm} from "../../types";
 import * as React from "react";
-import {createCategory} from "../../store/thunks/categoryThunks.ts";
-import {useAppDispatch} from "../../app/hooks.ts";
+import {createCategory, editCategory, fetchCategory} from "../../store/thunks/categoryThunks.ts";
+import {useAppDispatch, useAppSelector} from "../../app/hooks.ts";
+import {
+    createLoading,
+    isCloseModal, isEdit,
+    openModals, selectedData,
+} from "../../store/slices/categorySlice.ts";
 
 const initialState = {
     name: '',
@@ -14,18 +19,23 @@ const initialState = {
 const CategoryForm = () => {
     const [form, setForm] = useState<ICategoryForm>(initialState);
     const dispatch = useAppDispatch();
+    const isOpenModal = useAppSelector(openModals);
+    const loading = useAppSelector(createLoading);
+    const editLoading = useAppSelector(isEdit);
+    const selected = useAppSelector(selectedData);
 
-    const categories = [
-        {category: 'Food'},
-        {category: 'Cinema'},
-        {category: 'Gym'},
-        {category: 'Restaurants'},
-        {category: 'Clothes'},
-    ];
     const types = [
         {type: 'Income'},
         {type: 'Expense'},
     ];
+
+    useEffect(() => {
+        if (selected) {
+            setForm(selected);
+        } else {
+            setForm(initialState);
+        }
+    }, [dispatch, selected]);
 
     const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const {name, value} = e.target;
@@ -41,9 +51,23 @@ const CategoryForm = () => {
 
     const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        await createCategories(form);
+        if (selected) {
+            await dispatch(editCategory({...selected, ...form}));
+            dispatch(isCloseModal());
+            await dispatch(fetchCategory());
+        } else {
+            if (form.type.trim().length !== 0 && form.name.trim().length !== 0) {
+                await createCategories(form);
+                dispatch(isCloseModal());
+                await dispatch(fetchCategory());
+            } else {
+                alert('Заполните поля');
+            }
+        }
         setForm(initialState);
     };
+
+    if (!isOpenModal) return null;
 
     return (
         <form onSubmit={onSubmit} style={{
@@ -71,7 +95,7 @@ const CategoryForm = () => {
 
                 <div>
                     <Typography variant="h4" sx={{flexGrow: 1, textAlign: "center"}}>
-                        Create Category
+                        {selected ? 'Edit Category' : 'Create Category'}
                     </Typography>
                     <Grid
                         container
@@ -80,24 +104,7 @@ const CategoryForm = () => {
                     >
                         <Grid size={8}>
                             <TextField
-                                sx={{ width: "100%" }}
-                                id="outlined-select-currency"
-                                name="name"
-                                select
-                                label="Name"
-                                value={form.name}
-                                onChange={onChange}
-                            >
-                                {categories.map((option) => (
-                                    <MenuItem key={option.category} value={option.category}>
-                                        {option.category}
-                                    </MenuItem>
-                                ))}
-                            </TextField>
-                        </Grid>
-                        <Grid size={8}>
-                            <TextField
-                                sx={{ width: "100%" }}
+                                sx={{width: "100%"}}
                                 id="outlined-select-currency"
                                 name="type"
                                 select
@@ -113,8 +120,25 @@ const CategoryForm = () => {
                             </TextField>
                         </Grid>
                         <Grid size={8}>
-                            <Button type='submit' variant="contained" sx={{width: "100%"}} onClick={() => {}}>
-                                Create
+                            <TextField
+                                sx={{width: "100%"}}
+                                id="outlined-basic"
+                                name="name"
+                                label="Name"
+                                variant='outlined'
+                                value={form.name}
+                                onChange={onChange}
+                            >
+                            </TextField>
+                        </Grid>
+                        <Grid size={8}>
+                            <Button type='submit' variant="contained" sx={{width: "100%"}} disabled={loading || editLoading}>
+                                {selected ? 'Edit' : 'Create'}
+                            </Button>
+                        </Grid>
+                        <Grid size={8}>
+                            <Button variant="contained" sx={{width: "100%"}} onClick={() => dispatch(isCloseModal())}>
+                                Close
                             </Button>
                         </Grid>
                     </Grid>
